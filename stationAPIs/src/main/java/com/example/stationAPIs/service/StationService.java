@@ -2,12 +2,14 @@ package com.example.stationAPIs.service;
 
 import com.example.stationAPIs.repository.StationRepository;
 import com.example.stationAPIs.station.Station;
+import com.example.stationAPIs.utils.RecordNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -30,15 +32,16 @@ public class StationService {
         return sorting(sortOrder,field,limit);
     }
 
-    public Optional<Station> getStationById(Long stationId) throws IOException {
-        boolean exists = stationRepository.existsById(stationId);
+    public Station getStationById(Long stationId) throws RecordNotFoundException {
+        Station station=null;
 
-        if(!exists)
-        {
-            throw new IOException("station Id doesn't exist");
+        try {
+            station = stationRepository.findById(stationId).orElseThrow(() -> new NoSuchElementException("Record not found"));
+        } catch (NoSuchElementException e) {
+            throw new RecordNotFoundException("Record with stationID " + stationId + " not found");
         }
 
-        return stationRepository.findById(stationId);
+        return station;
     }
 
     public Station addStation(Station station) throws Exception{
@@ -82,14 +85,14 @@ public class StationService {
     }
 
     public String deleteById(Long stationId) throws Exception {
-        boolean stationById = stationRepository.existsById(stationId);
-
-        if(stationById==false) {
-            throw new Exception(String.format("Station with stationId :{} doesn't exist",stationId));
+        Optional<Station> station = stationRepository.findById(stationId);
+        if (station.isPresent()) {
+            stationRepository.deleteById(stationId);
+            return "Record with stationID " + stationId + " deleted successfully";
+        } else {
+            throw new RecordNotFoundException("Record with stationID " + stationId + " not found");
         }
 
-        stationRepository.deleteById(stationId);
-        return String.format("Deleted StationId :%d Successfully",stationId);
     }
 
     public List<Station> getLimitedStation(Long limit) {
@@ -98,11 +101,18 @@ public class StationService {
 
     public List<Station> sorting(String sortOrder, String field, Long limit) throws Exception {
 
-        if(!field.equals("station_pricing")){
+        if(field==null || !field.equals("station_pricing")){
             throw new Exception("Invalid param to sort the data, Please provide \"station_pricing\"");
         }
 
-        Sort sort= Sort.by(Sort.Direction.ASC, "stationPrice");
+        Sort sort = null;
+
+        if(sortOrder.equals("desc"))
+            sort= Sort.by(Sort.Direction.DESC, "stationPrice");
+
+        else if(sortOrder.equals("asc") || sortOrder==null)
+            sort= Sort.by(Sort.Direction.ASC, "stationPrice");
+
         if(limit==null)
             return stationRepository.findAll(sort);
         return stationRepository.findAll(sort).subList(0, Math.toIntExact(limit));

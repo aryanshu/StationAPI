@@ -2,11 +2,14 @@ package com.example.stationAPIs.controller;
 
 import com.example.stationAPIs.service.StationService;
 import com.example.stationAPIs.station.Station;
+import com.example.stationAPIs.utils.RecordNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -22,7 +25,7 @@ public class StationController {
     }
 
     @GetMapping("/show/{StationId}")
-    public Optional<Station> getStationById(@PathVariable Long StationId) throws IOException {
+    public Station getStationById(@PathVariable Long StationId) throws RecordNotFoundException {
         return stationService.getStationById(StationId);
     }
 
@@ -37,8 +40,11 @@ public class StationController {
     }
 
     @DeleteMapping("/delete/{StationId}")
-    public String deleteStation(@PathVariable Long StationId) throws Exception {
-        return stationService.deleteById(StationId);
+    public Map<String, Object> deleteStation(@PathVariable Long StationId) throws Exception {
+        String result = stationService.deleteById(StationId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", result);
+        return response;
     }
 
 
